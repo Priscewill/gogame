@@ -32,7 +32,7 @@ game_started = False
 board_size = 19
 board = [[0 for _ in range(board_size)] for _ in range(board_size)]
 current_player = 1
-board_history = []
+board_history = [[[0 for _ in range(board_size)] for _ in range(board_size)]]
 captures = {1: 0, 2: 0}
 last_capture_pos_black = [None, None]
 last_capture_pos_white = [None, None]
@@ -93,18 +93,11 @@ def has_liberties(i, j, visited=None):
 
 
 def remove_group(i, j):
-    global last_capture_pos_white, last_capture_pos_black
     color = board[i][j]
     stack = [(i, j)]
     while stack:
         ci, cj = stack.pop()
         board[ci][cj] = 0
-        if current_player == 1:
-            last_capture_pos_black[0] = (ci, cj)
-            last_capture_pos_black[1] = last_capture_pos_black[0]
-        if current_player == 2:
-            last_capture_pos_white[0] = (ci, cj)
-            last_capture_pos_white[1] = last_capture_pos_white[0]
         for di, dj in [(-1, 0), (1, 0), (0, -1), (0, 1)]:
             ni, nj = ci + di, cj + dj
             if 0 <= ni < board_size and 0 <= nj < board_size:
@@ -210,7 +203,7 @@ def draw_turn_indicator():
 
 
 def draw_restart_button():
-    button_rect = pygame.Rect(50, 750, BUTTON_WIDTH, BUTTON_HEIGHT)
+    button_rect = pygame.Rect(50, 740, BUTTON_WIDTH, BUTTON_HEIGHT)
     pygame.draw.rect(screen, BUTTON_COLOR, button_rect)
     button_text = font.render("Рестарт", True, BUTTON_TEXT_COLOR)
     text_rect = button_text.get_rect(center=button_rect.center)
@@ -219,7 +212,7 @@ def draw_restart_button():
 
 
 def draw_end_game_button():
-    button_rect = pygame.Rect(300, 750, BUTTON_WIDTH, BUTTON_HEIGHT)
+    button_rect = pygame.Rect(300, 740, BUTTON_WIDTH, BUTTON_HEIGHT)
     pygame.draw.rect(screen, BUTTON_COLOR, button_rect)
     button_text = font.render("Закончить игру", True, BUTTON_TEXT_COLOR)
     text_rect = button_text.get_rect(center=button_rect.center)
@@ -228,7 +221,7 @@ def draw_end_game_button():
 
 
 def draw_to_main_menu_button():
-    button_rect = pygame.Rect(550, 750, BUTTON_WIDTH, BUTTON_HEIGHT)
+    button_rect = pygame.Rect(550, 740, BUTTON_WIDTH, BUTTON_HEIGHT)
     pygame.draw.rect(screen, BUTTON_COLOR, button_rect)
     button_text = font.render("В главное меню", True, BUTTON_TEXT_COLOR)
     text_rect = button_text.get_rect(center=button_rect.center)
@@ -237,7 +230,7 @@ def draw_to_main_menu_button():
 
 
 def draw_back_button():
-    button_rect = pygame.Rect(550, 650, BUTTON_WIDTH, BUTTON_HEIGHT)  # Adjusted position
+    button_rect = pygame.Rect(550, 680, BUTTON_WIDTH, BUTTON_HEIGHT)
     pygame.draw.rect(screen, BUTTON_COLOR, button_rect)
     button_text = font.render("Назад", True, BUTTON_TEXT_COLOR)
     text_rect = button_text.get_rect(center=button_rect.center)
@@ -249,7 +242,7 @@ def restart_game():
     global board, current_player, board_history, captures, last_capture_pos_black, last_capture_pos_white
     board = [[0 for _ in range(board_size)] for _ in range(board_size)]
     current_player = 1
-    board_history = []
+    board_history = [[[0 for _ in range(board_size)] for _ in range(board_size)]]
     captures = {1: 0, 2: 0}
     last_capture_pos_black, last_capture_pos_white = [None, None], [None, None]
 
@@ -296,6 +289,15 @@ def draw_rules():
     return back_button
 
 
+def draw_rules_button():
+    button_rect = pygame.Rect(50, 680, BUTTON_WIDTH, BUTTON_HEIGHT)
+    pygame.draw.rect(screen, BUTTON_COLOR, button_rect)
+    button_text = font.render("Правила", True, BUTTON_TEXT_COLOR)
+    text_rect = button_text.get_rect(center=button_rect.center)
+    screen.blit(button_text, text_rect)
+    return button_rect
+
+
 def main():
     global game_started, current_player, board_history, captures, last_capture_pos_black, last_capture_pos_white, board_size, show_rules, initial_advantage, board
     running = True
@@ -321,47 +323,60 @@ def main():
                         if rules_button.collidepoint(pos):
                             show_rules = True
                 else:
-                    if game_ended:
-                        to_main_menu_button = draw_to_main_menu_button()
-                        if to_main_menu_button.collidepoint(pos):
-                            game_started = False
-                            game_ended = False
-                            restart_game()
+                    if show_rules:
+                        back_button = draw_rules()
+                        if back_button.collidepoint(pos):
+                            show_rules = False
                     else:
-                        board_pos = get_board_position(pos)
-                        if board_pos:
-                            i, j = board_pos
-                            if board[i][j] == 0:
-                                if not is_ko_violation(i, j):
-                                    if not is_suicide(i, j, current_player):
-                                        board[i][j] = current_player
-                                        if current_player == 2:
-                                            last_capture_pos_black[1] = (i, j)
-                                        if current_player == 1:
-                                            last_capture_pos_white[1] = (i, j)
-                                        captured = capture_stones(i, j)
-                                        captures[current_player] += captured
-                                        board_history.append(tuple(tuple(row) for row in board))
-                                        current_player = 3 - current_player
-                        else:
-                            end_game_button = draw_end_game_button()
-                            restart_button = draw_restart_button()
+                        if game_ended:
                             to_main_menu_button = draw_to_main_menu_button()
-                            back_button = draw_back_button()
-                            if end_game_button.collidepoint(pos):
-                                game_ended = True
-                            elif restart_button.collidepoint(pos):
-                                restart_game()
-                            elif to_main_menu_button.collidepoint(pos):
+                            if to_main_menu_button.collidepoint(pos):
                                 game_started = False
+                                game_ended = False
                                 restart_game()
-                            elif back_button.collidepoint(pos) and board_history:
-                                board = [list(row) for row in board_history.pop()]
-                                current_player = 3 - current_player
+                        else:
+                            board_pos = get_board_position(pos)
+                            if board_pos:
+                                i, j = board_pos
+                                if board[i][j] == 0:
+                                    if not is_ko_violation(i, j):
+                                        if not is_suicide(i, j, current_player):
+                                            board_history.append(([row.copy() for row in board], captures.copy()))
+                                            board[i][j] = current_player
+                                            captured = capture_stones(i, j)
+                                            captures[current_player] += captured
+                                            current_player = 3 - current_player
+                            else:
+                                end_game_button = draw_end_game_button()
+                                restart_button = draw_restart_button()
+                                to_main_menu_button = draw_to_main_menu_button()
+                                back_button = draw_back_button()
+                                rules_button = draw_rules_button()
+                                if end_game_button.collidepoint(pos):
+                                    game_ended = True
+                                elif restart_button.collidepoint(pos):
+                                    restart_game()
+                                elif to_main_menu_button.collidepoint(pos):
+                                    game_started = False
+                                    restart_game()
+                                elif back_button.collidepoint(pos) and board_history:
+                                    try:
+                                        board, prev_captures = board_history.pop()
+                                        captures = prev_captures.copy()
+                                        current_player = 3 - current_player
+                                    except:
+                                        pass
+                                elif rules_button.collidepoint(pos):
+                                    show_rules = True
 
         if not game_started:
             if show_rules:
                 back_button = draw_rules()
+                if back_button.collidepoint(pygame.mouse.get_pos()):
+                    pygame.draw.rect(screen, HOVER_COLOR, back_button)
+                    back_text = font.render("Назад", True, BUTTON_TEXT_COLOR)
+                    back_text_rect = back_text.get_rect(center=back_button.center)
+                    screen.blit(back_text, back_text_rect)
             else:
                 size_buttons, rules_button = draw_main_menu()
                 if rules_button.collidepoint(pygame.mouse.get_pos()):
@@ -370,18 +385,27 @@ def main():
                     rules_text_rect = rules_text.get_rect(center=rules_button.center)
                     screen.blit(rules_text, rules_text_rect)
         else:
-            draw_board()
-            draw_stones()
-            if game_ended:
-                black_score, white_score = count_points()
-                draw_scores(black_score, white_score)
-                to_main_menu_button = draw_to_main_menu_button()
+            if show_rules:
+                back_button = draw_rules()
+                if back_button.collidepoint(pygame.mouse.get_pos()):
+                    pygame.draw.rect(screen, HOVER_COLOR, back_button)
+                    back_text = font.render("Назад", True, BUTTON_TEXT_COLOR)
+                    back_text_rect = back_text.get_rect(center=back_button.center)
+                    screen.blit(back_text, back_text_rect)
             else:
-                draw_turn_indicator()
-                draw_end_game_button()
-                draw_restart_button()
-                draw_to_main_menu_button()
-                draw_back_button()
+                draw_board()
+                draw_stones()
+                if game_ended:
+                    black_score, white_score = count_points()
+                    draw_scores(black_score, white_score)
+                    to_main_menu_button = draw_to_main_menu_button()
+                else:
+                    draw_turn_indicator()
+                    draw_end_game_button()
+                    draw_restart_button()
+                    draw_to_main_menu_button()
+                    draw_back_button()
+                    draw_rules_button()
 
         pygame.display.flip()
 
