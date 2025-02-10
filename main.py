@@ -93,11 +93,18 @@ def has_liberties(i, j, visited=None):
 
 
 def remove_group(i, j):
+    global last_capture_pos_black, last_capture_pos_white
     color = board[i][j]
     stack = [(i, j)]
     while stack:
         ci, cj = stack.pop()
         board[ci][cj] = 0
+        if current_player == 1:
+            last_capture_pos_black[0] = (ci, cj)
+            last_capture_pos_black[1] = last_capture_pos_black[0]
+        if current_player == 2:
+            last_capture_pos_white[0] = (ci, cj)
+            last_capture_pos_white[1] = last_capture_pos_white[0]
         for di, dj in [(-1, 0), (1, 0), (0, -1), (0, 1)]:
             ni, nj = ci + di, cj + dj
             if 0 <= ni < board_size and 0 <= nj < board_size:
@@ -341,8 +348,13 @@ def main():
                                 if board[i][j] == 0:
                                     if not is_ko_violation(i, j):
                                         if not is_suicide(i, j, current_player):
+
                                             board_history.append(([row.copy() for row in board], captures.copy()))
                                             board[i][j] = current_player
+                                            if current_player == 2:
+                                                last_capture_pos_black[1] = (i, j)
+                                            if current_player == 1:
+                                                last_capture_pos_white[1] = (i, j)
                                             captured = capture_stones(i, j)
                                             captures[current_player] += captured
                                             current_player = 3 - current_player
